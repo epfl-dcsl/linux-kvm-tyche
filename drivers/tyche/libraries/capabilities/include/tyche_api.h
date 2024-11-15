@@ -30,7 +30,7 @@ typedef enum tyche_monitor_call_t {
 	TYCHE_SERIALIZE_ATTESTATION = 22,
 	TYCHE_RETURN_TO_MANAGER = 23,
 	TYCHE_GET_HPA = 24,
-    TYCHE_SET_CPUID_ENTRY = 26,
+	TYCHE_SET_CPUID_ENTRY = 26,
 	TYCHE_TEST_CALL = 30,
 } tyche_monitor_call_t;
 
@@ -89,6 +89,10 @@ typedef struct vmcall_frame_t {
 
 // —————————————————————————————————— API ——————————————————————————————————— //
 
+#if defined(CONFIG_RISCV) || defined(__riscv)
+int user_tyche_call(vmcall_frame_t *frame);
+#endif
+
 int tyche_call(vmcall_frame_t *frame);
 
 int tyche_create_domain(capa_index_t *management, int aliased);
@@ -142,6 +146,7 @@ int tyche_duplicate(capa_index_t *new_capa, capa_index_t capa);
 int tyche_get_hpa(usize gpa, usize gpa_size, usize *hpa, usize *hpa_size);
 
 int tyche_set_cpuid_entry(capa_index_t management, usize function, usize index,
-        usize flags, usize eax, usize ebx, usize ecx, usize edx);
+			  usize flags, usize eax, usize ebx, usize ecx,
+			  usize edx);
 
 #endif
