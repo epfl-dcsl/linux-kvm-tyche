@@ -1178,7 +1178,17 @@ static void quirk_usb_handoff_xhci(struct pci_dev *pdev)
 
 	/* If the BIOS owns the HC, signal that the OS wants it, and wait */
 	if (val & XHCI_HC_BIOS_OWNED) {
+#ifdef CONFIG_TYCHE_DRIVER
+		//TODO(aghosn): Need to fix this in the near future.
+		//The problem is that the bios owns the usb controller and a normal writel
+		//to claim the ownership (turn the OS owned bit on), seems to trigger some
+		//interrupt that I cannot capture. I don't know why. The work around is
+		//to simulate what linux would do for a non-responsive device, i.e., force
+		//the ownership transfer.
+		writel(val & ~XHCI_HC_BIOS_OWNED, base + ext_cap_offset);
+#else
 		writel(val | XHCI_HC_OS_OWNED, base + ext_cap_offset);
+#endif
 
 		/* Wait for 1 second with 10 microsecond polling interval */
 		timeout = handshake(base + ext_cap_offset, XHCI_HC_BIOS_OWNED,
