@@ -1686,8 +1686,9 @@ int driver_switch_domain(driver_domain_t * dom, msg_switch_t* params) {
   // This disables preemption to guarantee we remain on the same core after the
   // check.
   local_cpuid = get_cpu();
+  //TODO(aghosn), TODO(charly) this should be fixed now with the new cpuid implementation.
   // Linux does not use the physical CPU IDs, so we need to do the conversion ourselfes
-  real_cpuid = tyche_cpu(local_cpuid);
+  //real_cpuid =tyche_cpu(local_cpuid);
   // Check we are on the right core.
   if (params->core != local_cpuid) {
     ERROR("Attempt to switch on core %lld from cpu %d", params->core, local_cpuid);
@@ -1714,7 +1715,7 @@ int driver_switch_domain(driver_domain_t * dom, msg_switch_t* params) {
 
   DEBUG("About to try to switch to domain %lld", dom->domain_id);
   params->error = 0;
-  switch (switch_domain(dom->domain_id, params->delta, exit_frame, real_cpuid)) {
+  switch (switch_domain(dom->domain_id, params->delta, exit_frame, /*real_cpuid*/ local_cpuid)) {
     case SWITCH_SYNC:
       // Synchronous call back to us.
       // The exit frame is not valid.

@@ -815,10 +815,11 @@ int switch_domain(domain_id_t id, usize delta, usize exit_frame[TYCHE_EXIT_FRAME
     }
   }
   if (wrapper == NULL) {
-    ERROR("Unable to find a transition handle!");
+    ERROR("Unable to find a transition handle for local_cpuid %lld!", local_cpuid);
     // Let's have a look at the transitions.
     dll_foreach(&(child->transitions), wrapper, list) {
-      ERROR("A transition handle with value %d", wrapper->lock);
+      ERROR("A transition handle with value %d, core %lld", wrapper->lock,
+          wrapper->transition->info.transition.core);
     }
     ERROR("Done dumping transitions");
     goto failure;
