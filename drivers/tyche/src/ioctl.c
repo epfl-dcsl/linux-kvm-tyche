@@ -214,7 +214,7 @@ long tyche_ioctl(struct file* handle, unsigned int cmd, unsigned long arg)
       }
       ACQUIRE_DOM(false);
       if (driver_set_domain_core_config(domain, perm.core, perm.idx, perm.value) != SUCCESS) {
-        ERROR("Setting traps failed for domain %p", handle);
+        ERROR("Setting core config failed for domain %p", handle);
         RELEASE_DOM(false);
         goto failure;
       }

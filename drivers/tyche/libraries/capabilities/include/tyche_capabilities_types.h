@@ -17,6 +17,9 @@
 
 #define NO_ALIAS (~((usize)0))
 
+/// The number of permission fields for traps.
+#define NB_TRAP_PERMS 4
+
 #define ALL_CORES_MAP (~((usize)0))
 #define NO_CPU_SWITCH (~((usize)0))
 /// Internal definition of our types so we can move to 32 bits.

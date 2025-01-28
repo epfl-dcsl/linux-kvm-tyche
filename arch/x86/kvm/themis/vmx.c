@@ -8034,6 +8034,19 @@ static int vmx_vm_init(struct kvm *kvm)
 		return FAILURE;
 	}
 
+	//@aghosn: KVM expects DEBUG | INVALID_OPCODE | ALIGNMENT_CHECK | MACHINE_CHECK
+	LOG("Setting exception to 0x%llx", ((1ULL << 32) -1ULL) ^ 0x60042ULL);
+	if (driver_set_domain_configuration(vmx->domain, TYCHE_CONFIG_TRAPS,
+	((1ULL << 32) -1ULL) ^ 0x60042ULL) != SUCCESS) {
+		ERROR("Failure to set exceptions.");
+	}
+	for (unsigned int p = TYCHE_CONFIG_TRAPS1; p <= TYCHE_CONFIG_TRAPS3; p++) {
+		// By default KVM want to trap all the interrupts.
+		if (driver_set_domain_configuration(vmx->domain, p, 0) != SUCCESS) {
+			ERROR("Failure to set exceptions.");
+		}
+	}
+
 	if (kvm->type != 0) {
 		core_map = ((kvm->type) << 32) >> 32;
 	} else {
