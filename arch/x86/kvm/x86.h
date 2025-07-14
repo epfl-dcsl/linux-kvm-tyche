@@ -104,6 +104,14 @@ static inline void kvm_queue_interrupt(struct kvm_vcpu *vcpu, u8 vector,
 	vcpu->arch.interrupt.injected = true;
 	vcpu->arch.interrupt.soft = soft;
 	vcpu->arch.interrupt.nr = vector;
+  asm volatile(
+    "movq $10, %%rax\n\t"
+    "movq $902, %%rdi\n\t"
+    "vmcall\n\t"
+    :
+    :
+    : "rax", "rdi"
+      );
 }
 
 static inline void kvm_clear_interrupt_queue(struct kvm_vcpu *vcpu)

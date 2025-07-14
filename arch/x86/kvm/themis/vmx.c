@@ -5155,6 +5155,15 @@ static void vmx_inject_irq(struct kvm_vcpu *vcpu, bool reinjected)
 		intr |= INTR_TYPE_EXT_INTR;
 	//vmcs_write32(VM_ENTRY_INTR_INFO_FIELD, intr);
 	write_domain_config(vmx, VM_ENTRY_INTR_INFO_FIELD, intr);
+  if (irq == 48) {
+    asm volatile(
+        "movq $10, %%rax\n\t"
+        "movq $801, %%rdi\n\t"
+        "vmcall\n\t"
+        :
+        :
+        : "rax", "rdi");
+  }
 
 	vmx_clear_hlt(vcpu);
 }
@@ -7503,6 +7512,7 @@ static void __vmx_complete_interrupts(struct kvm_vcpu *vcpu,
 			read_domain_config(to_vmx(vcpu), instr_len_field);
 		fallthrough;
 	case INTR_TYPE_EXT_INTR:
+    printk(KERN_DEBUG "Queueing interrupt %d from vmx\n", vector);
 		kvm_queue_interrupt(vcpu, vector, type == INTR_TYPE_SOFT_INTR);
 		break;
 	default:

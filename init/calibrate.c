@@ -184,6 +184,18 @@ static unsigned long calibrate_delay_direct(void)
  */
 #define LPS_PREC 8
 
+static void tyche_debug(uint64_t marker) {
+  asm volatile(
+    "movq $10, %%rax\n\t"
+    "movq %0, %%rdi\n\t"
+    "vmcall\n\t"
+    :
+    : "rm"(marker)
+    : "rax", "rdi"
+      );
+}
+
+
 static unsigned long calibrate_delay_converge(void)
 {
 	/* First stage - slowly accelerate to find initial bounds */
@@ -194,8 +206,10 @@ static unsigned long calibrate_delay_converge(void)
 
 	/* wait for "start of" clock tick */
 	ticks = jiffies;
+  tyche_debug(900);
 	while (ticks == jiffies)
 		; /* nothing */
+  tyche_debug(901);
 	/* Go .. */
 	ticks = jiffies;
 	do {

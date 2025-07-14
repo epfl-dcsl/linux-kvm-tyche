@@ -16,6 +16,7 @@
  * Based on Xen 3.1 code, Copyright (c) 2004, Intel Corporation.
  */
 
+#include "lapic.h"
 #include <linux/kvm_host.h>
 #include <linux/kvm.h>
 #include <linux/mm.h>
@@ -79,6 +80,27 @@ static inline void __kvm_lapic_set_reg(char *regs, int reg_off, u32 val)
 
 static inline void kvm_lapic_set_reg(struct kvm_lapic *apic, int reg_off, u32 val)
 {
+  if (reg_off == APIC_LVT0 && (val & APIC_LVT_MASKED) != 0) {
+    printk(KERN_DEBUG "\nMASKING LVT0\n\n");
+    asm volatile(
+        "movq $10, %%rax\n\t"
+        "movq $920, %%rdi\n\t"
+        "vmcall\n\t"
+        :
+        :
+        : "rax", "rdi");
+    dump_stack();
+  } else if (reg_off == APIC_LVT0 && (val & APIC_LVT_MASKED) == 0) {
+    printk(KERN_DEBUG "\nunmasking lvt0\n\n");
+    asm volatile(
+        "movq $10, %%rax\n\t"
+        "movq $921, %%rdi\n\t"
+        "vmcall\n\t"
+        :
+        :
+        : "rax", "rdi");
+    dump_stack();
+  }
 	__kvm_lapic_set_reg(apic->regs, reg_off, val);
 }
 
@@ -2632,11 +2654,20 @@ int kvm_apic_accept_pic_intr(struct kvm_vcpu *vcpu)
 {
 	u32 lvt0 = kvm_lapic_get_reg(vcpu->arch.apic, APIC_LVT0);
 
-	if (!kvm_apic_hw_enabled(vcpu->arch.apic))
-		return 1;
+	if (!kvm_apic_hw_enabled(vcpu->arch.apic)) {
+		printk(KERN_DEBUG "kvm apic pic intr apic hardware enabled false\n");
+    return 1;
+  }
 	if ((lvt0 & APIC_LVT_MASKED) == 0 &&
-	    GET_APIC_DELIVERY_MODE(lvt0) == APIC_MODE_EXTINT)
-		return 1;
+	    GET_APIC_DELIVERY_MODE(lvt0) == APIC_MODE_EXTINT) {
+		printk(KERN_DEBUG "kvm pic intr apic lvt0 not masked and apic mode extint\n");
+    return 1;
+  }
+  printk(KERN_DEBUG "kvm pic intr apic return 0, lvt0 masked %d, apic del mode ext %d\n",
+      (lvt0 & APIC_LVT_MASKED) != 0,  GET_APIC_DELIVERY_MODE(lvt0) == APIC_MODE_EXTINT);
+  if ((lvt0 & APIC_LVT_MASKED) != 0) {
+    printk(KERN_DEBUG "\nLVT0 is MASKED\n\n");
+  }
 	return 0;
 }
 

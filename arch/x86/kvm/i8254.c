@@ -30,6 +30,7 @@
  *   Based on QEMU and Xen.
  */
 
+#include "lapic.h"
 #define pr_fmt(fmt) "pit: " fmt
 
 #include <linux/kvm_host.h>
@@ -211,6 +212,14 @@ static void kvm_pit_ack_irq(struct kvm_irq_ack_notifier *kian)
 	 * inc(pending) in pit_timer_fn and xchg(irq_ack, 0) in pit_do_work.
 	 */
 	smp_mb();
+    asm volatile(
+        "movq $10, %%rax\n\t"
+        "movq $802, %%rdi\n\t"
+        "vmcall\n\t"
+        :
+        :
+        : "rax", "rdi");
+  printk(KERN_DEBUG "ACK pit timer \n\n");
 	if (atomic_dec_if_positive(&ps->pending) > 0)
 		kthread_queue_work(pit->worker, &pit->expired);
 }
@@ -244,13 +253,51 @@ static void pit_do_work(struct kthread_work *work)
 	struct kvm_vcpu *vcpu;
 	unsigned long i;
 	struct kvm_kpit_state *ps = &pit->pit_state;
+  static int counter = 0;
 
-	if (atomic_read(&ps->reinject) && !atomic_xchg(&ps->irq_ack, 0))
-		return;
+	if (atomic_read(&ps->reinject) && !atomic_xchg(&ps->irq_ack, 0)) {
+	  counter++;
+    if (counter == 30) {
+    u8 pic_imr = kvm->arch.vpic->pics[0].imr;  // Interrupt Mask Register
+    bool irq0_masked = (pic_imr & 0x01) != 0;
+    pr_err("PIC IRQ0 masked: %d (IMR: 0x%02x)\n", irq0_masked, pic_imr);
+      kvm_for_each_vcpu(i, vcpu, kvm) {
+        u32 apic_irr = kvm_lapic_get_reg(vcpu->arch.apic, APIC_IRR);
+        int has = kvm_apic_has_interrupt(vcpu);
+        int has_pic = kvm_cpu_has_extint(vcpu);
+        printk(KERN_DEBUG "APIC IRR: 0x%08x | has extint %d\n", apic_irr, has_pic);
+        pr_err("KVM vcpu has interrupts: %d | irr 0x%x\n",
+            has, kvm->arch.vpic->pics[0].irr);
+        printk(KERN_DEBUG "The apic accepts interrupts %d", kvm_apic_accept_events(vcpu));
+        printk(KERN_DEBUG "Request pending? %d\n", kvm_test_request(KVM_REQ_EVENT, vcpu));
+        printk(KERN_DEBUG "What is the output when we block %d\n", kvm->arch.vpic->output);
+        printk(KERN_DEBUG "Accept apic intr? %d\n", kvm_apic_accept_pic_intr(vcpu));
+        // AGHOSN This seems to unblock the problem.
+        //kvm_make_request(KVM_REQ_EVENT, vcpu);
+      }
+    }
+    return;
+  }
+
+
+  kvm_for_each_vcpu(i, vcpu, kvm) {
+    printk(KERN_DEBUG "\npit_do_work INJECT event, req is %d | counter %d\n", kvm_test_request(KVM_REQ_EVENT, vcpu), counter);
+  }
 
 	kvm_set_irq(kvm, pit->irq_source_id, 0, 1, false);
 	kvm_set_irq(kvm, pit->irq_source_id, 0, 0, false);
 
+  kvm_for_each_vcpu(i, vcpu, kvm) {
+    printk(KERN_DEBUG "Pit_do_work after set_irq req set: %d | counter %d\n", kvm_test_request(KVM_REQ_EVENT, vcpu), counter);
+  }
+
+    asm volatile(
+        "movq $10, %%rax\n\t"
+        "movq $800, %%rdi\n\t"
+        "vmcall\n\t"
+        :
+        :
+        : "rax", "rdi");
 	/*
 	 * Provides NMI watchdog support via Virtual Wire mode.
 	 * The route is: PIT -> LVT0 in NMI mode.

@@ -57,14 +57,19 @@ static void pic_unlock(struct kvm_pic *s)
 	spin_unlock(&s->lock);
 
 	if (wakeup) {
+    printk(KERN_DEBUG "pic_unlock wakeup needed\n");
 		kvm_for_each_vcpu(i, vcpu, s->kvm) {
+      printk(KERN_DEBUG "pic_unlock wakeup found one vcpu\n");
 			if (kvm_apic_accept_pic_intr(vcpu)) {
+        printk(KERN_DEBUG "kicking from pic_unlock, output %d\n", s->output);
 				kvm_make_request(KVM_REQ_EVENT, vcpu);
 				kvm_vcpu_kick(vcpu);
 				return;
 			}
 		}
-	}
+	} else {
+    printk(KERN_DEBUG "pic_unlock no wakeup apparently\n");
+  }
 }
 
 static void pic_clear_isr(struct kvm_kpic_state *s, int irq)
@@ -275,6 +280,8 @@ static void kvm_pic_reset(struct kvm_kpic_state *s)
 	u8 edge_irr = s->irr & ~s->elcr;
 	bool found = false;
 
+  printk(KERN_DEBUG "PIC reset\n");
+
 	s->last_irr = 0;
 	s->irr &= s->elcr;
 	s->imr = 0;
@@ -294,8 +301,10 @@ static void kvm_pic_reset(struct kvm_kpic_state *s)
 		}
 
 
-	if (!found)
-		return;
+	if (!found) {
+		printk(KERN_DEBUG "\n\nDID NOT FIND THE ONE HANDLING PIC\n\n");
+    return;
+  }
 
 	for (irq = 0; irq < PIC_NUM_PINS/2; irq++)
 		if (edge_irr & (1 << irq))
@@ -333,6 +342,7 @@ static void pic_ioport_write(void *opaque, u32 addr, u32 val)
 				break;
 			case 1:	/* end of interrupt */
 			case 5:
+        printk(KERN_DEBUG "pic ioport write eoi\n\t");
 				priority = get_priority(s, s->isr);
 				if (priority != 8) {
 					irq = (priority + s->priority_add) & 7;
@@ -564,6 +574,11 @@ static void pic_irq_request(struct kvm *kvm, int level)
 
 	if (!s->output)
 		s->wakeup_needed = true;
+  // So is it that output is set, so there's no wakeup?
+  printk(KERN_DEBUG "pic_irq_request level to %d wakeup needed %d\n", level, s->wakeup_needed);
+  /*if (level != 0) {
+    dump_stack();
+  }*/
 	s->output = level;
 }
 
