@@ -245,8 +245,21 @@ static void pit_do_work(struct kthread_work *work)
 	unsigned long i;
 	struct kvm_kpit_state *ps = &pit->pit_state;
 
-	if (atomic_read(&ps->reinject) && !atomic_xchg(&ps->irq_ack, 0))
+	if (atomic_read(&ps->reinject) && !atomic_xchg(&ps->irq_ack, 0)) {
+#ifdef CONFIG_KVM_THEMIS
+		// With Tyche, we have observed that a linux td1 booting might be too slow
+		// when masking unmasking LVT0, which leads to a lost PIT not being injected
+		// while the PIT emulation thinks it was and never bothers resetting
+		// the KVM_REQ_EVENT.
+		kvm_for_each_vcpu(i, vcpu, kvm) {
+			if (kvm_apic_accept_pic_intr(vcpu)) {
+				kvm_make_request(KVM_REQ_EVENT, vcpu);
+				//kvm_vcpu_kick(vcpu);
+			}
+		}
+#endif
 		return;
+	}
 
 	kvm_set_irq(kvm, pit->irq_source_id, 0, 1, false);
 	kvm_set_irq(kvm, pit->irq_source_id, 0, 0, false);
