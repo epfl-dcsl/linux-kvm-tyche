@@ -1296,7 +1296,8 @@ int driver_alloc_core_context(driver_domain_t *dom, usize core) {
 
   if ((dom->configs[TYCHE_CONFIG_CORES] & (1 << core)) == 0 ||
       dom->contexts[core] != NULL) {
-    ERROR("Trying to commit entry point on unallowed/allocated core");
+    ERROR("Trying to commit entry point on unallowed/allocated core: coremap 0x%llx, core: 0x%llx",
+        dom->configs[TYCHE_CONFIG_CORES], core);
     goto failure;
   }
   if (core >= ENTRIES_PER_DOMAIN) {

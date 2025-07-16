@@ -89,7 +89,7 @@ int write_domain_config(struct vcpu_vmx *vmx, usize idx, usize value)
 	}
 
 	ACQUIRE_DOM(kvm_vmx->domain, true);
-	if (driver_set_domain_core_config(kvm_vmx->domain, vmx->vcpu.vcpu_id,
+	if (driver_set_domain_core_config(kvm_vmx->domain, vmx->vcpu.tyche_contex_id,
 						idx, value) != SUCCESS) {
 		ERROR("Unable to set the domain core config");
 		RELEASE_DOM(kvm_vmx->domain, true);
@@ -114,7 +114,7 @@ usize read_domain_config(struct vcpu_vmx *vmx, usize idx)
 		goto failure;
 	}
 	ACQUIRE_DOM(kvm_vmx->domain, false);
-	if (driver_get_domain_core_config(kvm_vmx->domain, vmx->vcpu.vcpu_id,
+	if (driver_get_domain_core_config(kvm_vmx->domain, vmx->vcpu.tyche_contex_id,
 						idx, &value) != SUCCESS) {
 		ERROR("Unable to get the domain core config.");
 		RELEASE_DOM(kvm_vmx->domain, false);
