@@ -8044,7 +8044,7 @@ static int vmx_vm_init(struct kvm *kvm)
 	}
 	//@aghosn: setup the domain's permissions.
 	if (kvm->type != 0)
-		perms = ((kvm->type) >> 32) << 32;
+		perms = ((kvm->type) >> 32);
 	else {
 		perms = TYCHE_PERM_SPAWN | TYCHE_PERM_SEND |
 			TYCHE_PERM_DUPLICATE | TYCHE_PERM_CARVE | TYCHE_PERM_ALIAS;
