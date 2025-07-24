@@ -7656,7 +7656,7 @@ static noinstr void vmx_vcpu_enter_exit(struct kvm_vcpu *vcpu,
 	//TODO(@aghosn) how do we relate a vcpu to a core for tyche?
 	//This mapping has to be re-designed I think, should be done before disable interrupt.
 	write_all_gp_registers(vmx);
-	params.core = vcpu->tyche_contex_id;
+	params.core = vcpu->tyche_context_id;
 	ACQUIRE_DOM(vmx_kvm->domain, false);
 	vmx->fail = driver_switch_domain(vmx_kvm->domain, &params);
 	RELEASE_DOM(vmx_kvm->domain, false);
@@ -7887,15 +7887,17 @@ static int vmx_vcpu_create(struct kvm_vcpu *vcpu)
 
 	vmx->vpid = allocate_vpid();
 
-	vcpu->tyche_contex_id = get_tyche_vcpu_index(vcpu);
-  // Unable to find the tyche id for this vcpu.
-  if (vcpu->tyche_contex_id == -1) {
-    return FAILURE;
-  }
+	vcpu->tyche_context_id = get_tyche_vcpu_index(vcpu);
+	// Unable to find the tyche id for this vcpu.
+	if (vcpu->tyche_context_id == -1) {
+		return FAILURE;
+	}
+
+	printk(KERN_DEBUG "The vcpu %d is on context id %d\n", vcpu->vcpu_id, vcpu->tyche_context_id);
 
 	/// Create a context for this core.
 	ACQUIRE_DOM(vmx_kvm->domain, true);
-	if (driver_alloc_core_context(vmx_kvm->domain, vmx->vcpu.tyche_contex_id) !=
+	if (driver_alloc_core_context(vmx_kvm->domain, vmx->vcpu.tyche_context_id) !=
 	    SUCCESS) {
 		ERROR("Unable to allocated core context on %d",
 		      vmx->vcpu.vcpu_id);
@@ -8074,6 +8076,8 @@ static int vmx_vm_init(struct kvm *kvm)
 		core_map = (1UL << num_possible_cpus()) - 1;
 	}
 	vmx->coremap = core_map;
+
+	printk(KERN_DEBUG "The permission %lx and the coremap: %lx\n", perms, core_map);
 	///@aghosn: setup cores here.
 	///TODO(@aghosn): should we expose this differently? or add it to the vcpu create?
 	if (driver_set_domain_configuration(vmx->domain, TYCHE_CONFIG_CORES,
@@ -8756,7 +8760,7 @@ static int tyche_install_cpuid_entries(struct kvm_vcpu *vcpu, struct kvm_cpuid_e
 
     return SUCCESS;
 fail:
-    ERROR("Failled to install CPUID entry");
+    //ERROR("Failed to install CPUID entry");
     return FAILURE;
 }
 

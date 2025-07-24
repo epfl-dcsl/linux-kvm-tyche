@@ -325,7 +325,7 @@ struct kvm_vcpu {
 	int cpu;
 	int vcpu_id; /* id given by userspace at creation */
 	int vcpu_idx; /* index in kvm->vcpus array */
-	int tyche_contex_id; /*@aghosn: use only by tyche */
+	int tyche_context_id; /*@aghosn: use only by tyche */
 	int ____srcu_idx; /* Don't use this directly.  You've been warned. */
 #ifdef CONFIG_PROVE_RCU
 	int srcu_depth;
